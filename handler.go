@@ -25,10 +25,10 @@ func NewHandlerError(err error, code int) *HandlerError {
 	return &HandlerError{Error: err, Code: code}
 }
 
-func handlerLoggerHTTP(fn Handler) http.Handler {
+func HandlerLoggerHTTP(fn Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if Stopping {
-			handlerLogger(pageRouterStopping, w, r, nil)
+			handlerLogger(PageRouterStopping, w, r, nil)
 		} else {
 			handlerLogger(fn, w, r, nil)
 		}
@@ -36,10 +36,10 @@ func handlerLoggerHTTP(fn Handler) http.Handler {
 	)
 }
 
-func handlerLoggerRouter(fn Handler) httprouter.Handle {
+func HandlerLoggerRouter(fn Handler) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		if Stopping {
-			handlerLogger(pageRouterStopping, w, r, p)
+			handlerLogger(PageRouterStopping, w, r, p)
 		} else {
 			handlerLogger(fn, w, r, p)
 		}
