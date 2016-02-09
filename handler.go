@@ -47,7 +47,7 @@ func HandlerLoggerRouter(fn Handler) httprouter.Handle {
 }
 
 func handlerLogger(fn Handler, w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	l := newHandlerLogEntry(r)
+	l := NewHandlerLogEntry(r)
 	l.Info("New request")
 
 	starttime := time.Now()
@@ -90,7 +90,7 @@ func handlerError(w http.ResponseWriter, r *http.Request, e *HandlerError) {
 	http.Error(w, scode+" - "+e.Error.Error(), e.Code)
 }
 
-func newHandlerLogEntry(r *http.Request) *log.Entry {
+func NewHandlerLogEntry(r *http.Request) *log.Entry {
 	remote, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		log.WithFields(log.Fields{
