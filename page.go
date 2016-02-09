@@ -16,18 +16,18 @@ func PageRouterMethodNotAllowed(w http.ResponseWriter, r *http.Request, p httpro
 }
 
 func PageRouterStopping(w http.ResponseWriter, r *http.Request, p httprouter.Params) *HandlerError {
-	return NewHandlerError(errgo.New("service is stopping"), http.StatusInternalServerError)
+	return NewHandlerErrorDef(errgo.New("service is stopping"))
 }
 
 func PageMinimalFavicon(w http.ResponseWriter, r *http.Request, p httprouter.Params) *HandlerError {
 	raw, err := Asset("data/favicon.ico")
 	if err != nil {
-		return NewHandlerError(errgo.Notef(err, "can not read raw page"), http.StatusInternalServerError)
+		return NewHandlerErrorDef(errgo.Notef(err, "can not read raw page"))
 	}
 
 	_, err = w.Write(raw)
 	if err != nil {
-		return NewHandlerError(errgo.Notef(err, "can not write raw data to responsewriter"), http.StatusInternalServerError)
+		return NewHandlerErrorDef(errgo.Notef(err, "can not write raw data to responsewriter"))
 	}
 
 	return nil
