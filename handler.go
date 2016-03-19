@@ -1,7 +1,8 @@
 package httphelper
 
 import (
-	"net"
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"strconv"
 	"time"
@@ -46,61 +47,67 @@ func HandlerLoggerRouter(fn Handler) httprouter.Handle {
 	}
 }
 
+func NewHandlerLogEntry(r *http.Request) *log.Entry {
+	remoteAddr := r.RemoteAddr
+	if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
+		remoteAddr = realIP
+	}
+
+	entry := log.WithFields(log.Fields{
+		"context": "http",
+		"url":     r.URL,
+		"remote":  remoteAddr,
+	})
+
+	var err error
+	entry.Data["request_id"], err = generateID(16)
+	if err != nil {
+		panic("can not generate id for request")
+	}
+
+	return entry
+}
+
 func handlerLogger(fn Handler, w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	l := NewHandlerLogEntry(r)
-	l.Info("New request")
+	l.Info("started handling request")
 
 	starttime := time.Now()
-
 	err := fn(w, r, p)
-	if err != nil {
-		if err.Error != nil {
-			handlerError(w, r, err)
-		}
-	}
 	duration := time.Since(starttime)
 
 	l.Data["duration"] = duration
-	l.Info("Finished")
-}
 
-func handlerError(w http.ResponseWriter, r *http.Request, e *HandlerError) {
-	remote, _, err := net.SplitHostPort(r.RemoteAddr)
+	code := http.StatusOK
+
 	if err != nil {
-		log.WithFields(log.Fields{
-			"remote": r.RemoteAddr,
-		}).Warning(errgo.Notef(err, "can not get ip from remote addr"))
+		code = err.Code
 	}
 
-	log.WithFields(log.Fields{
-		"context":      "http",
-		"responsecode": e.Code,
-		"url":          r.URL,
-		"ip":           remote,
-	}).Error(e.Error)
+	l.Data["status"] = code
+	l.Data["text_status"] = http.StatusText(code)
 
-	log.WithFields(log.Fields{
-		"context":      "http",
-		"responsecode": e.Code,
-		"url":          r.URL,
-		"ip":           remote,
-	}).Debug(errgo.Details(e.Error))
+	if err != nil {
+		if err.Error != nil {
+			l.Data["error_message"] = err.Error
 
-	scode := strconv.Itoa(e.Code)
-	http.Error(w, scode+" - "+e.Error.Error(), e.Code)
+			l.Debug(errgo.Details(err.Error))
+			l.Error("completed handling request")
+
+			scode := strconv.Itoa(err.Code)
+			http.Error(w, scode+" ("+http.StatusText(err.Code)+") - "+err.Error.Error(), err.Code)
+		}
+	} else {
+		l.Info("completed handling request")
+	}
 }
 
-func NewHandlerLogEntry(r *http.Request) *log.Entry {
-	remote, _, err := net.SplitHostPort(r.RemoteAddr)
+func generateID(n int) (string, error) {
+	r := make([]byte, n)
+	_, err := rand.Read(r)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"remote": r.RemoteAddr,
-		}).Warning(errgo.Notef(err, "can not get ip from remote addr"))
+		return "", err
 	}
 
-	return log.WithFields(log.Fields{
-		"context": "http",
-		"url":     r.URL,
-		"ip":      remote,
-	})
+	return hex.EncodeToString(r), nil
 }
