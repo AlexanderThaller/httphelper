@@ -70,7 +70,7 @@ func NewHandlerLogEntry(r *http.Request) *log.Entry {
 
 func handlerLogger(fn Handler, w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	l := NewHandlerLogEntry(r)
-	l.Info("started handling request")
+	l.Debug("started handling request")
 
 	starttime := time.Now()
 	err := fn(w, r, p)
