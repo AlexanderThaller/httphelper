@@ -10,6 +10,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/juju/errgo"
 	"github.com/julienschmidt/httprouter"
+	"github.com/sebest/xff"
 )
 
 type Handler func(http.ResponseWriter, *http.Request, httprouter.Params) *HandlerError
@@ -48,10 +49,7 @@ func HandlerLoggerRouter(fn Handler) httprouter.Handle {
 }
 
 func NewHandlerLogEntry(r *http.Request) *log.Entry {
-	remoteAddr := r.RemoteAddr
-	if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
-		remoteAddr = realIP
-	}
+	remoteAddr := xff.GetRemoteAddr(r)
 
 	entry := log.WithFields(log.Fields{
 		"context": "http",
